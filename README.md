@@ -1,9 +1,9 @@
-# Tradalia Agent
+# Algotiqa Agent
 
 ## Introduction
 
 This is an agent that collects metrics from external trading systems and exposes them through a REST API. It is used by 
-the Tradalia platform when the trading system's runtime is external to the platform itself (like TradeStation and MultiCharts).
+the Algotiqa platform when the trading system's runtime is external to the platform itself (like TradeStation and MultiCharts).
 
 ## File format
 

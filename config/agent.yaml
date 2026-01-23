@@ -2,6 +2,6 @@ general:
   logFile: log/agent.log
   bindAddress: :9443
 scan:
-  dir: /my/src/tradalia/reports
+  dir: /my/src/algotiqa/reports
   periodHour: 1
   extension: .trl

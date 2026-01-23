@@ -27,7 +27,7 @@ package service
 import (
 	"net/http"
 
-	"github.com/tradalia/agent/pkg/core"
+	"github.com/algotiqa/agent/pkg/core"
 	"github.com/gin-gonic/gin"
 )
 

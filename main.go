@@ -27,15 +27,16 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/tradalia/agent/pkg/app"
-	"github.com/tradalia/agent/pkg/core"
-	"github.com/tradalia/agent/pkg/service"
-	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
 	"io"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/algotiqa/agent/pkg/app"
+	"github.com/algotiqa/agent/pkg/core"
+	"github.com/algotiqa/agent/pkg/service"
+	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 )
 
 //=============================================================================
@@ -55,8 +56,8 @@ func main() {
 func readConfig() *app.Config {
 	viper.SetConfigName("agent")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("/etc/tradalia/")
-	viper.AddConfigPath("$HOME/.tradalia/agent")
+	viper.AddConfigPath("/etc/algotiqa/")
+	viper.AddConfigPath("$HOME/.algotiqa/agent")
 	viper.AddConfigPath("config")
 
 	err := viper.ReadInConfig()
@@ -111,7 +112,7 @@ func runHttpServer(router *gin.Engine, cfg *app.Config) {
 
 	caCert, err := os.ReadFile("config/ca.crt")
 	if err != nil {
-		log.Fatal("Cannot read ca.crt file: "+err.Error())
+		log.Fatal("Cannot read ca.crt file: " + err.Error())
 	}
 
 	rootCAs := x509.NewCertPool()
@@ -120,7 +121,7 @@ func runHttpServer(router *gin.Engine, cfg *app.Config) {
 	}
 
 	server := &http.Server{
-		Addr:      cfg.General.BindAddress,
+		Addr: cfg.General.BindAddress,
 		TLSConfig: &tls.Config{
 			ClientCAs:  rootCAs,
 			ClientAuth: tls.RequireAndVerifyClientCert,

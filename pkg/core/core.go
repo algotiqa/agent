@@ -33,13 +33,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tradalia/agent/pkg/app"
+	"github.com/algotiqa/agent/pkg/app"
 	"golang.org/x/exp/maps"
 )
 
 //=============================================================================
 
-const INFO  = "INFO"
+const INFO = "INFO"
 const TRADE = "TRADE"
 const DAILY = "DAILY"
 
@@ -89,7 +89,7 @@ func run(cfg *app.Config) {
 			if !entry.IsDir() && strings.HasSuffix(entry.Name(), cfg.Scan.Extension) {
 				ts := handleFile(dir, entry.Name())
 				if ts != nil {
-					if tsIn,ok:=tsMap.TradingSystems[ts.Name]; ok {
+					if tsIn, ok := tsMap.TradingSystems[ts.Name]; ok {
 						tsIn.TradeLists = append(tsIn.TradeLists, ts.TradeLists...)
 					} else {
 						tsMap.TradingSystems[ts.Name] = ts
@@ -117,8 +117,8 @@ func handleFile(dir string, fileName string) *TradingSystem {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	ts      := NewTradingSystem()
-	tl      := NewTradeList()
+	ts := NewTradingSystem()
+	tl := NewTradeList()
 
 	for scanner.Scan() {
 		if err = handleLine(ts, tl, scanner.Text()); err != nil {
@@ -138,22 +138,22 @@ func handleFile(dir string, fileName string) *TradingSystem {
 
 //=============================================================================
 
-func handleLine(ts *TradingSystem, tl *TradeList, line string) error{
+func handleLine(ts *TradingSystem, tl *TradeList, line string) error {
 	tokens := strings.Split(line, "|")
 
 	switch tokens[0] {
-		case INFO:
-			handleInfo(ts, tokens)
-		case TRADE:
-			if err := handleTrade(tl, tokens); err != nil {
-				return err
-			}
-		case DAILY:
-			if err := handleDaily(tl, tokens); err != nil {
-				return err
-			}
-		default:
-			return errors.New("Unknown token: "+ tokens[0])
+	case INFO:
+		handleInfo(ts, tokens)
+	case TRADE:
+		if err := handleTrade(tl, tokens); err != nil {
+			return err
+		}
+	case DAILY:
+		if err := handleDaily(tl, tokens); err != nil {
+			return err
+		}
+	default:
+		return errors.New("Unknown token: " + tokens[0])
 	}
 
 	return nil
@@ -163,7 +163,7 @@ func handleLine(ts *TradingSystem, tl *TradeList, line string) error{
 
 func handleInfo(ts *TradingSystem, tokens []string) {
 	ts.DataSymbol = tokens[1]
-	ts.Name       = tokens[2]
+	ts.Name = tokens[2]
 }
 
 //=============================================================================
@@ -171,17 +171,17 @@ func handleInfo(ts *TradingSystem, tokens []string) {
 func handleTrade(tl *TradeList, tokens []string) error {
 	var err error
 
-	entryDate   := tokens[ 1]
-	entryTime   := tokens[ 2]
-	entryPrice  := tokens[ 3]
-	entryLabel  := tokens[ 4]
-	exitDate    := tokens[ 5]
-	exitTime    := tokens[ 6]
-	exitPrice   := tokens[ 7]
-	exitLabel   := tokens[ 8]
-	grossProfit := tokens[ 9]
-	contracts   := tokens[10]
-	position    := tokens[11]
+	entryDate := tokens[1]
+	entryTime := tokens[2]
+	entryPrice := tokens[3]
+	entryLabel := tokens[4]
+	exitDate := tokens[5]
+	exitTime := tokens[6]
+	exitPrice := tokens[7]
+	exitLabel := tokens[8]
+	grossProfit := tokens[9]
+	contracts := tokens[10]
+	position := tokens[11]
 
 	tr := NewTrade()
 
@@ -194,12 +194,12 @@ func handleTrade(tl *TradeList, tokens []string) error {
 
 	tr.EntryTime, err = strconv.ParseInt(entryTime, 10, 32)
 	if err != nil {
-		return errors.New("Cannot parse entry time: "+ entryTime)
+		return errors.New("Cannot parse entry time: " + entryTime)
 	}
 
 	tr.EntryPrice, err = strconv.ParseFloat(entryPrice, 64)
 	if err != nil {
-		return errors.New("Cannot parse entry price: "+ entryPrice)
+		return errors.New("Cannot parse entry price: " + entryPrice)
 	}
 
 	tr.EntryLabel = entryLabel
@@ -213,12 +213,12 @@ func handleTrade(tl *TradeList, tokens []string) error {
 
 	tr.ExitTime, err = strconv.ParseInt(exitTime, 10, 32)
 	if err != nil {
-		return errors.New("Cannot parse exit time: "+ exitTime)
+		return errors.New("Cannot parse exit time: " + exitTime)
 	}
 
 	tr.ExitPrice, err = strconv.ParseFloat(exitPrice, 64)
 	if err != nil {
-		return errors.New("Cannot parse exit price: "+ exitPrice)
+		return errors.New("Cannot parse exit price: " + exitPrice)
 	}
 
 	tr.ExitLabel = exitLabel
@@ -227,17 +227,17 @@ func handleTrade(tl *TradeList, tokens []string) error {
 
 	tr.GrossProfit, err = strconv.ParseFloat(grossProfit, 64)
 	if err != nil {
-		return errors.New("Cannot parse gross profit: "+ grossProfit)
+		return errors.New("Cannot parse gross profit: " + grossProfit)
 	}
 
 	tr.Contracts, err = strconv.ParseInt(contracts, 10, 32)
 	if err != nil {
-		return errors.New("Cannot parse contracts: "+ contracts)
+		return errors.New("Cannot parse contracts: " + contracts)
 	}
 
 	tr.Position, err = strconv.ParseInt(position, 10, 32)
 	if err != nil {
-		return errors.New("Cannot parse position: "+ position)
+		return errors.New("Cannot parse position: " + position)
 	}
 
 	//-----------------------------------------
@@ -251,10 +251,10 @@ func handleTrade(tl *TradeList, tokens []string) error {
 func handleDaily(tl *TradeList, tokens []string) error {
 	var err error
 
-	ddate       := tokens[ 1]
-	dtime       := tokens[ 2]
-	grossProfit := tokens[ 3]
-	trades      := tokens[ 4]
+	ddate := tokens[1]
+	dtime := tokens[2]
+	grossProfit := tokens[3]
+	trades := tokens[4]
 
 	dp := NewDailyProfit()
 
@@ -267,17 +267,17 @@ func handleDaily(tl *TradeList, tokens []string) error {
 
 	dp.Time, err = strconv.ParseInt(dtime, 10, 32)
 	if err != nil {
-		return errors.New("Cannot parse time: "+ dtime)
+		return errors.New("Cannot parse time: " + dtime)
 	}
 
 	dp.GrossProfit, err = strconv.ParseFloat(grossProfit, 64)
 	if err != nil {
-		return errors.New("Cannot parse gross profit: "+ grossProfit)
+		return errors.New("Cannot parse gross profit: " + grossProfit)
 	}
 
 	dp.Trades, err = strconv.ParseInt(trades, 10, 32)
 	if err != nil {
-		return errors.New("Cannot parse trades: "+ trades)
+		return errors.New("Cannot parse trades: " + trades)
 	}
 
 	//-----------------------------------------
@@ -292,18 +292,18 @@ func convertDate(date string) (int, error) {
 	tokens := strings.Split(date, "/")
 
 	if len(tokens) != 3 {
-		return 0, errors.New("Bad format for date: " +date)
+		return 0, errors.New("Bad format for date: " + date)
 	}
 
 	value, err := strconv.ParseInt(tokens[2]+tokens[1]+tokens[0], 10, 32)
 
 	if err != nil {
-		return 0, errors.New("Cannot convert date to int: " +date)
+		return 0, errors.New("Cannot convert date to int: " + date)
 	}
 
 	if value < 20000000 || value > 30000000 {
 		log.Println("Bad value for day: " + date)
-		return 0, errors.New("Date out of range: " +date)
+		return 0, errors.New("Date out of range: " + date)
 	}
 
 	return int(value), nil
