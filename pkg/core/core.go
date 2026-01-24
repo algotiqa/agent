@@ -27,10 +27,11 @@ package core
 import (
 	"bufio"
 	"errors"
-	"log"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/algotiqa/agent/pkg/app"
@@ -45,27 +46,31 @@ const DAILY = "DAILY"
 
 //=============================================================================
 
+var config *app.Config
+var semaphore sync.RWMutex
 var tradingSystems *TradingSystemMap
 
 //=============================================================================
 
 func GetTradingSystems() []*TradingSystem {
-	log.Println("Getting trading systems for client")
+	slog.Info("Getting trading systems for client")
+	semaphore.RLock()
+	defer semaphore.RUnlock()
 	return maps.Values(tradingSystems.TradingSystems)
 }
 
 //=============================================================================
 
 func StartPeriodicScan(cfg *app.Config) *time.Ticker {
-
+	config = cfg
 	ticker := time.NewTicker(cfg.Scan.PeriodHour * time.Hour)
 
 	go func() {
 		time.Sleep(2 * time.Second)
-		run(cfg)
+		run()
 
 		for range ticker.C {
-			run(cfg)
+			run()
 		}
 	}()
 
@@ -74,44 +79,87 @@ func StartPeriodicScan(cfg *app.Config) *time.Ticker {
 
 //=============================================================================
 
-func run(cfg *app.Config) {
-	dir := cfg.Scan.Dir
-	log.Println("Fetching files from: " + dir)
+func run() {
+	dir := config.Scan.Dir
+	slog.Info("Starting read process", "dir", dir)
 
 	files, err := os.ReadDir(dir)
 
 	if err != nil {
-		log.Println("Scan error: ", err)
+		slog.Error("Cannot scan directory", "error", err)
 	} else {
 		tsMap := NewTradingSystemMap()
 
 		for _, entry := range files {
-			if !entry.IsDir() && strings.HasSuffix(entry.Name(), cfg.Scan.Extension) {
-				ts := handleFile(dir, entry.Name())
-				if ts != nil {
+			fileName := entry.Name()
+			if !entry.IsDir() && strings.HasSuffix(fileName, config.Scan.Extension) {
+				ts, err1 := handleFile(dir, fileName)
+				if err1 == nil {
 					if tsIn, ok := tsMap.TradingSystems[ts.Name]; ok {
 						tsIn.TradeLists = append(tsIn.TradeLists, ts.TradeLists...)
 					} else {
 						tsMap.TradingSystems[ts.Name] = ts
 					}
+				} else {
+					slog.Error("Cannot process file. Skipping it", "file", fileName, "error", err1)
 				}
 			}
 		}
+
+		semaphore.Lock()
 		tradingSystems = tsMap
+		semaphore.Unlock()
 	}
+
+	slog.Info("Read process ended", "files", len(files))
 }
 
 //=============================================================================
 
-func handleFile(dir string, fileName string) *TradingSystem {
-	log.Println("Handling: " + fileName)
+func Reload(name string) (*TradingSystem, error) {
+	dir := config.Scan.Dir
 
+	files, err := os.ReadDir(dir)
+
+	if err != nil {
+		slog.Error("Cannot scan the directory", "dir", dir, "error", err)
+		return nil, errors.New("Cannot scan the directory '" + dir + "'. Error: " + err.Error())
+	}
+
+	var ts *TradingSystem
+
+	for _, entry := range files {
+		fileName := entry.Name()
+		if !entry.IsDir() && strings.HasPrefix(fileName, name) {
+			ts1, err1 := handleFile(dir, fileName)
+			if err1 == nil {
+				if ts == nil {
+					ts = ts1
+				} else {
+					ts.TradeLists = append(ts.TradeLists, ts1.TradeLists...)
+				}
+			} else {
+				slog.Error("Cannot process file", "file", fileName, "error", err1)
+				return nil, errors.New("Cannot process file '" + fileName + "'. Error: " + err1.Error())
+			}
+		}
+	}
+
+	semaphore.Lock()
+	tradingSystems.TradingSystems[ts.Name] = ts
+	semaphore.Unlock()
+
+	return ts, nil
+}
+
+//=============================================================================
+
+func handleFile(dir string, fileName string) (*TradingSystem, error) {
 	path := dir + string(os.PathSeparator) + fileName
 	file, err := os.Open(path)
 
 	if err != nil {
-		log.Println("Cannot open file for reading: " + path + " (cause is: " + err.Error() + " )")
-		return nil
+		return nil, errors.New("Cannot open file for reading: " + path + " (cause is: " + err.Error() + " )")
 	}
 
 	defer file.Close()
@@ -119,21 +167,20 @@ func handleFile(dir string, fileName string) *TradingSystem {
 	scanner := bufio.NewScanner(file)
 	ts := NewTradingSystem()
 	tl := NewTradeList()
+	tl.FileName = fileName
 
 	for scanner.Scan() {
 		if err = handleLine(ts, tl, scanner.Text()); err != nil {
-			log.Println(err.Error())
-			return nil
+			return nil, errors.New(err.Error())
 		}
 	}
 
 	if err = scanner.Err(); err != nil {
-		log.Println("Cannot scan file: " + path + " (cause is: " + err.Error() + " )")
-		return nil
+		return nil, errors.New("Cannot scan file: " + path + " (cause is: " + err.Error() + " )")
 	}
 
 	ts.TradeLists = append(ts.TradeLists, tl)
-	return ts
+	return ts, nil
 }
 
 //=============================================================================
@@ -302,7 +349,6 @@ func convertDate(date string) (int, error) {
 	}
 
 	if value < 20000000 || value > 30000000 {
-		log.Println("Bad value for day: " + date)
 		return 0, errors.New("Date out of range: " + date)
 	}
 

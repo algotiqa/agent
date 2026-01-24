@@ -25,16 +25,41 @@ THE SOFTWARE.
 package service
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/algotiqa/agent/pkg/core"
-	"github.com/gin-gonic/gin"
+	"github.com/algotiqa/core/auth"
 )
 
 //=============================================================================
 
-func getTradingSystems(c *gin.Context) {
-	c.JSON(http.StatusOK, core.GetTradingSystems())
+func getTradingSystems(c *auth.Context) {
+	c.Gin.JSON(http.StatusOK, core.GetTradingSystems())
+}
+
+//=============================================================================
+
+func reloadTradingSystem(c *auth.Context) {
+	var rr ReloadRequest
+	err := c.BindParamsFromBody(&rr)
+
+	if err == nil {
+		var ts *core.TradingSystem
+		ts, err = core.Reload(rr.Name)
+		if err == nil {
+			slog.Info("Trading system reloaded", "name", rr.Name)
+			c.ReturnObject(ts)
+		}
+	}
+
+	c.ReturnError(err)
+}
+
+//=============================================================================
+
+func handlePing(c *auth.Context) {
+	c.Gin.JSON(http.StatusOK, "ok")
 }
 
 //=============================================================================

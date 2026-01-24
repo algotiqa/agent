@@ -24,12 +24,32 @@ THE SOFTWARE.
 
 package service
 
-import "github.com/gin-gonic/gin"
+import (
+	"log/slog"
+
+	"github.com/algotiqa/core/auth"
+	"github.com/gin-gonic/gin"
+)
 
 //=============================================================================
 
-func Init(router *gin.Engine) {
-	router.GET("/api/v1/trading-systems", getTradingSystems)
+func Init(logger *slog.Logger, router *gin.Engine) {
+	router.GET("/api/v1/trading-systems", wrap(logger, getTradingSystems))
+	router.POST("/api/v1/trading-systems/reload", wrap(logger, reloadTradingSystem))
+	router.GET("/api/v1/system/ping", wrap(logger, handlePing))
+}
+
+//=============================================================================
+
+func wrap(logger *slog.Logger, h auth.RestService) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		ctx := &auth.Context{
+			Gin: c,
+			Log: logger,
+		}
+
+		h(ctx)
+	}
 }
 
 //=============================================================================

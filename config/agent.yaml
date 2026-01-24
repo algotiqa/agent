@@ -1,6 +1,7 @@
-general:
-  logFile: log/agent.log
+application:
   bindAddress: :9443
+  production: false
+  debug: false
 scan:
   dir: /my/src/algotiqa/reports
   periodHour: 1

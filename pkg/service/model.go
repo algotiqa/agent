@@ -22,23 +22,12 @@ THE SOFTWARE.
 */
 //=============================================================================
 
-package app
-
-import (
-	"time"
-
-	"github.com/algotiqa/core"
-)
+package service
 
 //=============================================================================
 
-type Config struct {
-	core.Application
-	Scan struct {
-		Dir        string
-		PeriodHour time.Duration
-		Extension  string
-	}
+type ReloadRequest struct {
+	Name string `json:"name"`
 }
 
 //=============================================================================
