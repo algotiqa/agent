@@ -116,7 +116,7 @@ func run() {
 
 //=============================================================================
 
-func Reload(name string) (*TradingSystem, error) {
+func ReloadTradingSystem(name string) (*TradingSystem, error) {
 	dir := config.Scan.Dir
 
 	files, err := os.ReadDir(dir)
@@ -149,7 +149,39 @@ func Reload(name string) (*TradingSystem, error) {
 	tradingSystems.TradingSystems[ts.Name] = ts
 	semaphore.Unlock()
 
+	slog.Info("ReloadTradingSystem: Trading system reloaded", "name", name)
+
 	return ts, nil
+}
+
+//=============================================================================
+
+func ListTradingSystems() ([]string, error) {
+	dir := config.Scan.Dir
+
+	files, err := os.ReadDir(dir)
+
+	if err != nil {
+		slog.Error("Cannot scan the directory", "dir", dir, "error", err)
+		return nil, errors.New("Cannot scan the directory '" + dir + "'. Error: " + err.Error())
+	}
+
+	names := map[string]bool{}
+
+	for _, entry := range files {
+		fileName := entry.Name()
+		if !entry.IsDir() {
+			ts, err1 := handleFile(dir, fileName)
+			if err1 == nil {
+				names[ts.Name] = true
+			}
+		}
+	}
+
+	list := maps.Keys(names)
+	slog.Info("ListTradingSystems: Got list of trading systems", "names", list)
+
+	return list, nil
 }
 
 //=============================================================================

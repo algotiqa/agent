@@ -35,6 +35,7 @@ import (
 
 func Init(logger *slog.Logger, router *gin.Engine) {
 	router.GET("/api/v1/trading-systems", wrap(logger, getTradingSystems))
+	router.GET("/api/v1/trading-systems/names", wrap(logger, listTradingSystems))
 	router.POST("/api/v1/trading-systems/reload", wrap(logger, reloadTradingSystem))
 	router.GET("/api/v1/system/ping", wrap(logger, handlePing))
 }

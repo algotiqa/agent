@@ -25,7 +25,6 @@ THE SOFTWARE.
 package service
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/algotiqa/agent/pkg/core"
@@ -46,11 +45,21 @@ func reloadTradingSystem(c *auth.Context) {
 
 	if err == nil {
 		var ts *core.TradingSystem
-		ts, err = core.Reload(rr.Name)
+		ts, err = core.ReloadTradingSystem(rr.Name)
 		if err == nil {
-			slog.Info("Trading system reloaded", "name", rr.Name)
-			c.ReturnObject(ts)
+			_ = c.ReturnObject(ts)
 		}
+	}
+
+	c.ReturnError(err)
+}
+
+//=============================================================================
+
+func listTradingSystems(c *auth.Context) {
+	names, err := core.ListTradingSystems()
+	if err == nil {
+		_ = c.ReturnObject(names)
 	}
 
 	c.ReturnError(err)
