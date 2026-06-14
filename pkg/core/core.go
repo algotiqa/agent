@@ -28,131 +28,25 @@ import (
 	"bufio"
 	"errors"
 	"log/slog"
+	"maps"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/algotiqa/agent/pkg/app"
-	"golang.org/x/exp/maps"
 )
 
 //=============================================================================
 
-const INFO = "INFO"
+const INFO  = "INFO"
+const START = "START"
+const BAR   = "BAR"
 const TRADE = "TRADE"
-const DAILY = "DAILY"
 
 //=============================================================================
 
 var config *app.Config
-var semaphore sync.RWMutex
-var tradingSystems *TradingSystemMap
-
-//=============================================================================
-
-func GetTradingSystems() []*TradingSystem {
-	slog.Info("Getting trading systems for client")
-	semaphore.RLock()
-	defer semaphore.RUnlock()
-	return maps.Values(tradingSystems.TradingSystems)
-}
-
-//=============================================================================
-
-func StartPeriodicScan(cfg *app.Config) *time.Ticker {
-	config = cfg
-	ticker := time.NewTicker(cfg.Scan.PeriodHour * time.Hour)
-
-	go func() {
-		time.Sleep(2 * time.Second)
-		run()
-
-		for range ticker.C {
-			run()
-		}
-	}()
-
-	return ticker
-}
-
-//=============================================================================
-
-func run() {
-	dir := config.Scan.Dir
-	slog.Info("Starting read process", "dir", dir)
-
-	files, err := os.ReadDir(dir)
-
-	if err != nil {
-		slog.Error("Cannot scan directory", "error", err)
-	} else {
-		tsMap := NewTradingSystemMap()
-
-		for _, entry := range files {
-			fileName := entry.Name()
-			if !entry.IsDir() && strings.HasSuffix(fileName, config.Scan.Extension) {
-				ts, err1 := handleFile(dir, fileName)
-				if err1 == nil {
-					if tsIn, ok := tsMap.TradingSystems[ts.Name]; ok {
-						tsIn.TradeLists = append(tsIn.TradeLists, ts.TradeLists...)
-					} else {
-						tsMap.TradingSystems[ts.Name] = ts
-					}
-				} else {
-					slog.Error("Cannot process file. Skipping it", "file", fileName, "error", err1)
-				}
-			}
-		}
-
-		semaphore.Lock()
-		tradingSystems = tsMap
-		semaphore.Unlock()
-	}
-
-	slog.Info("Read process ended", "files", len(files))
-}
-
-//=============================================================================
-
-func ReloadTradingSystem(name string) (*TradingSystem, error) {
-	dir := config.Scan.Dir
-
-	files, err := os.ReadDir(dir)
-
-	if err != nil {
-		slog.Error("Cannot scan the directory", "dir", dir, "error", err)
-		return nil, errors.New("Cannot scan the directory '" + dir + "'. Error: " + err.Error())
-	}
-
-	var ts *TradingSystem
-
-	for _, entry := range files {
-		fileName := entry.Name()
-		if !entry.IsDir() && strings.HasPrefix(fileName, name) {
-			ts1, err1 := handleFile(dir, fileName)
-			if err1 == nil {
-				if ts == nil {
-					ts = ts1
-				} else {
-					ts.TradeLists = append(ts.TradeLists, ts1.TradeLists...)
-				}
-			} else {
-				slog.Error("Cannot process file", "file", fileName, "error", err1)
-				return nil, errors.New("Cannot process file '" + fileName + "'. Error: " + err1.Error())
-			}
-		}
-	}
-
-	semaphore.Lock()
-	tradingSystems.TradingSystems[ts.Name] = ts
-	semaphore.Unlock()
-
-	slog.Info("ReloadTradingSystem: Trading system reloaded", "name", name)
-
-	return ts, nil
-}
 
 //=============================================================================
 
@@ -171,17 +65,55 @@ func ListTradingSystems() ([]string, error) {
 	for _, entry := range files {
 		fileName := entry.Name()
 		if !entry.IsDir() {
-			ts, err1 := handleFile(dir, fileName)
-			if err1 == nil {
-				names[ts.Name] = true
+			if strings.HasSuffix(fileName, config.Scan.Extension) {
+				idx  := strings.Index(fileName,".")
+				name := fileName[:idx]
+
+				names[name] = true
 			}
 		}
 	}
 
-	list := maps.Keys(names)
-	slog.Info("ListTradingSystems: Got list of trading systems", "names", list)
+	list := slices.Collect(maps.Keys(names))
+	slog.Info("ListTradingSystems: Got list of trading systems", "count", len(list))
 
 	return list, nil
+}
+
+//=============================================================================
+
+func GetTradingSystem(name string) (*TradingSystem, error) {
+	dir := config.Scan.Dir
+
+	files, err := os.ReadDir(dir)
+
+	if err != nil {
+		slog.Error("Cannot scan the directory", "dir", dir, "error", err)
+		return nil, errors.New("Cannot scan the directory '" + dir + "'. Error: " + err.Error())
+	}
+
+	var ts *TradingSystem
+
+	for _, entry := range files {
+		fileName := entry.Name()
+		if !entry.IsDir() && strings.HasPrefix(fileName, name) && strings.HasSuffix(fileName, config.Scan.Extension) {
+			ts1, err1 := handleFile(dir, fileName)
+			if err1 == nil {
+				if ts == nil {
+					ts = ts1
+				} else {
+					ts.TradeLists = append(ts.TradeLists, ts1.TradeLists...)
+				}
+			} else {
+				slog.Error("Cannot process file", "file", fileName, "error", err1)
+				return nil, errors.New("Cannot process file '" + fileName + "'. Error: " + err1.Error())
+			}
+		}
+	}
+
+	slog.Info("GetTradingSystem: Trading system loaded", "name", name)
+
+	return ts, nil
 }
 
 //=============================================================================
@@ -223,12 +155,14 @@ func handleLine(ts *TradingSystem, tl *TradeList, line string) error {
 	switch tokens[0] {
 	case INFO:
 		handleInfo(ts, tokens)
-	case TRADE:
-		if err := handleTrade(tl, tokens); err != nil {
+	case START:
+		tl.OpenTrade = nil
+	case BAR:
+		if err := handleBar(tl, tokens); err != nil {
 			return err
 		}
-	case DAILY:
-		if err := handleDaily(tl, tokens); err != nil {
+	case TRADE:
+		if err := handleTrade(ts, tl, tokens); err != nil {
 			return err
 		}
 	default:
@@ -242,25 +176,65 @@ func handleLine(ts *TradingSystem, tl *TradeList, line string) error {
 
 func handleInfo(ts *TradingSystem, tokens []string) {
 	ts.DataSymbol = tokens[1]
-	ts.Name = tokens[2]
+	ts.Name       = tokens[2]
 }
 
 //=============================================================================
 
-func handleTrade(tl *TradeList, tokens []string) error {
+func handleBar(tl *TradeList, tokens []string) error {
 	var err error
 
-	entryDate := tokens[1]
-	entryTime := tokens[2]
-	entryPrice := tokens[3]
-	entryLabel := tokens[4]
-	exitDate := tokens[5]
-	exitTime := tokens[6]
-	exitPrice := tokens[7]
-	exitLabel := tokens[8]
-	grossProfit := tokens[9]
-	contracts := tokens[10]
-	position := tokens[11]
+	ddate       := tokens[1]
+	dtime       := tokens[2]
+	grossReturn := tokens[3]
+	contracts   := tokens[4]
+
+	eb := NewEquityBar()
+
+	//-----------------------------------------
+
+	eb.Date, err = convertDate(ddate)
+	if err != nil {
+		return err
+	}
+
+	eb.Time, err = strconv.ParseInt(dtime, 10, 32)
+	if err != nil {
+		return errors.New("Cannot parse time: " + dtime)
+	}
+
+	eb.GrossReturn, err = strconv.ParseFloat(grossReturn, 64)
+	if err != nil {
+		return errors.New("Cannot parse gross return: " + grossReturn)
+	}
+
+	eb.Contracts, err = strconv.ParseInt(contracts, 10, 32)
+	if err != nil {
+		return errors.New("Cannot parse contracts: " + contracts)
+	}
+
+	//-----------------------------------------
+
+	tl.OpenTrade = append(tl.OpenTrade, eb)
+	return nil
+}
+
+//=============================================================================
+
+func handleTrade(ts *TradingSystem, tl *TradeList, tokens []string) error {
+	var err error
+
+	entryDate    := tokens[1]
+	entryTime    := tokens[2]
+	entryPrice   := tokens[3]
+	entryLabel   := tokens[4]
+	exitDate     := tokens[5]
+	exitTime     := tokens[6]
+	exitPrice    := tokens[7]
+	exitLabel    := tokens[8]
+	grossReturn  := tokens[9]
+	maxContracts := tokens[10]
+	position     := tokens[11]
 
 	tr := NewTrade()
 
@@ -304,14 +278,14 @@ func handleTrade(tl *TradeList, tokens []string) error {
 
 	//-----------------------------------------
 
-	tr.GrossProfit, err = strconv.ParseFloat(grossProfit, 64)
+	tr.GrossReturn, err = strconv.ParseFloat(grossReturn, 64)
 	if err != nil {
-		return errors.New("Cannot parse gross profit: " + grossProfit)
+		return errors.New("Cannot parse gross return: " + grossReturn)
 	}
 
-	tr.Contracts, err = strconv.ParseInt(contracts, 10, 32)
+	tr.MaxContracts, err = strconv.ParseInt(maxContracts, 10, 32)
 	if err != nil {
-		return errors.New("Cannot parse contracts: " + contracts)
+		return errors.New("Cannot parse max contracts: " + maxContracts)
 	}
 
 	tr.Position, err = strconv.ParseInt(position, 10, 32)
@@ -321,47 +295,9 @@ func handleTrade(tl *TradeList, tokens []string) error {
 
 	//-----------------------------------------
 
-	tl.Trades = append(tl.Trades, tr)
-	return nil
-}
-
-//=============================================================================
-
-func handleDaily(tl *TradeList, tokens []string) error {
-	var err error
-
-	ddate := tokens[1]
-	dtime := tokens[2]
-	grossProfit := tokens[3]
-	trades := tokens[4]
-
-	dp := NewDailyProfit()
-
-	//-----------------------------------------
-
-	dp.Date, err = convertDate(ddate)
-	if err != nil {
-		return err
-	}
-
-	dp.Time, err = strconv.ParseInt(dtime, 10, 32)
-	if err != nil {
-		return errors.New("Cannot parse time: " + dtime)
-	}
-
-	dp.GrossProfit, err = strconv.ParseFloat(grossProfit, 64)
-	if err != nil {
-		return errors.New("Cannot parse gross profit: " + grossProfit)
-	}
-
-	dp.Trades, err = strconv.ParseInt(trades, 10, 32)
-	if err != nil {
-		return errors.New("Cannot parse trades: " + trades)
-	}
-
-	//-----------------------------------------
-
-	tl.DailyProfits = append(tl.DailyProfits, dp)
+	tr.Equity    = tl.OpenTrade
+	tl.Trades    = append(tl.Trades, tr)
+	tl.OpenTrade = nil
 	return nil
 }
 

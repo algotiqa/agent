@@ -26,7 +26,7 @@ package service
 
 //=============================================================================
 
-type ReloadRequest struct {
+type TradingSystemRequest struct {
 	Name string `json:"name"`
 }
 

@@ -26,24 +26,6 @@ package core
 
 //=============================================================================
 //===
-//=== TradingSystemMap
-//===
-//=============================================================================
-
-type TradingSystemMap struct {
-	TradingSystems map[string]*TradingSystem `json:"tradingSystems"`
-}
-
-//=============================================================================
-
-func NewTradingSystemMap() *TradingSystemMap {
-	ss := &TradingSystemMap{}
-	ss.TradingSystems = map[string]*TradingSystem{}
-	return ss
-}
-
-//=============================================================================
-//===
 //=== TradingSystem
 //===
 //=============================================================================
@@ -70,9 +52,9 @@ func NewTradingSystem() *TradingSystem {
 //=============================================================================
 
 type TradeList struct {
-	FileName     string         `json:"fileName"`
-	Trades       []*Trade       `json:"trades"`
-	DailyProfits []*DailyProfit `json:"dailyProfits"`
+	FileName   string       `json:"fileName"`
+	Trades     []*Trade     `json:"trades"`
+	OpenTrade  []*EquityBar `json:"openTrade"`
 }
 
 //=============================================================================
@@ -80,7 +62,6 @@ type TradeList struct {
 func NewTradeList() *TradeList {
 	tl := TradeList{}
 	tl.Trades = []*Trade{}
-	tl.DailyProfits = []*DailyProfit{}
 	return &tl
 }
 
@@ -91,17 +72,18 @@ func NewTradeList() *TradeList {
 //=============================================================================
 
 type Trade struct {
-	EntryDate   int     `json:"entryDate"`
-	EntryTime   int64   `json:"entryTime"`
-	EntryPrice  float64 `json:"entryPrice"`
-	EntryLabel  string  `json:"entryLabel"`
-	ExitDate    int     `json:"exitDate"`
-	ExitTime    int64   `json:"exitTime"`
-	ExitPrice   float64 `json:"exitPrice"`
-	ExitLabel   string  `json:"exitLabel"`
-	GrossProfit float64 `json:"grossProfit"`
-	Contracts   int64   `json:"contracts"`
-	Position    int64   `json:"position"`
+	EntryDate    int          `json:"entryDate"`
+	EntryTime    int64        `json:"entryTime"`
+	EntryPrice   float64      `json:"entryPrice"`
+	EntryLabel   string       `json:"entryLabel"`
+	ExitDate     int          `json:"exitDate"`
+	ExitTime     int64        `json:"exitTime"`
+	ExitPrice    float64      `json:"exitPrice"`
+	ExitLabel    string       `json:"exitLabel"`
+	GrossReturn  float64      `json:"grossReturn"`
+	MaxContracts int64        `json:"maxContracts"`
+	Position     int64        `json:"position"`
+	Equity       []*EquityBar `json:"equity"`
 }
 
 //=============================================================================
@@ -112,17 +94,17 @@ func NewTrade() *Trade {
 
 //=============================================================================
 
-type DailyProfit struct {
+type EquityBar struct {
 	Date        int     `json:"date"`
 	Time        int64   `json:"time"`
-	GrossProfit float64 `json:"grossProfit"`
-	Trades      int64   `json:"trades"`
+	GrossReturn float64 `json:"grossReturn"`
+	Contracts   int64   `json:"contracts"`
 }
 
 //=============================================================================
 
-func NewDailyProfit() *DailyProfit {
-	return &DailyProfit{}
+func NewEquityBar() *EquityBar {
+	return &EquityBar{}
 }
 
 //=============================================================================

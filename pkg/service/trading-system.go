@@ -33,22 +33,10 @@ import (
 
 //=============================================================================
 
-func getTradingSystems(c *auth.Context) {
-	c.Gin.JSON(http.StatusOK, core.GetTradingSystems())
-}
-
-//=============================================================================
-
-func reloadTradingSystem(c *auth.Context) {
-	var rr ReloadRequest
-	err := c.BindParamsFromBody(&rr)
-
+func listTradingSystems(c *auth.Context) {
+	names, err := core.ListTradingSystems()
 	if err == nil {
-		var ts *core.TradingSystem
-		ts, err = core.ReloadTradingSystem(rr.Name)
-		if err == nil {
-			_ = c.ReturnObject(ts)
-		}
+		_ = c.ReturnObject(names)
 	}
 
 	c.ReturnError(err)
@@ -56,10 +44,16 @@ func reloadTradingSystem(c *auth.Context) {
 
 //=============================================================================
 
-func listTradingSystems(c *auth.Context) {
-	names, err := core.ListTradingSystems()
+func getTradingSystem(c *auth.Context) {
+	var rr TradingSystemRequest
+	err := c.BindParamsFromBody(&rr)
+
 	if err == nil {
-		_ = c.ReturnObject(names)
+		var ts *core.TradingSystem
+		ts, err = core.GetTradingSystem(rr.Name)
+		if err == nil {
+			_ = c.ReturnObject(ts)
+		}
 	}
 
 	c.ReturnError(err)

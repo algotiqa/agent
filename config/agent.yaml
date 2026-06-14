@@ -4,5 +4,4 @@ application:
   debug: false
 scan:
   dir: /my/src/algotiqa/reports
-  periodHour: 1
   extension: .trl
