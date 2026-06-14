@@ -50,6 +50,12 @@ var config *app.Config
 
 //=============================================================================
 
+func Init(cfg *app.Config) {
+	config = cfg
+}
+
+//=============================================================================
+
 func ListTradingSystems() ([]string, error) {
 	dir := config.Scan.Dir
 

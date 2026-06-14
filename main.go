@@ -26,6 +26,7 @@ package main
 
 import (
 	"github.com/algotiqa/agent/pkg/app"
+	"github.com/algotiqa/agent/pkg/core"
 	"github.com/algotiqa/agent/pkg/service"
 	"github.com/algotiqa/core/boot"
 )
@@ -42,6 +43,7 @@ func main() {
 	logger := boot.InitLogger(component, &cfg.Application)
 	engine := boot.InitEngine(logger, &cfg.Application)
 	service.Init(logger, engine)
+	core.Init(cfg)
 	boot.RunHttpServer(engine, &cfg.Application)
 }
 
