@@ -25,10 +25,18 @@ THE SOFTWARE.
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"log/slog"
+	"net/http"
+	"os"
+
 	"github.com/algotiqa/agent/pkg/app"
-	"github.com/algotiqa/agent/pkg/core"
+	acore "github.com/algotiqa/agent/pkg/core"
 	"github.com/algotiqa/agent/pkg/service"
+	"github.com/algotiqa/core"
 	"github.com/algotiqa/core/boot"
+	"github.com/gin-gonic/gin"
 )
 
 //=============================================================================
@@ -43,8 +51,40 @@ func main() {
 	logger := boot.InitLogger(component, &cfg.Application)
 	engine := boot.InitEngine(logger, &cfg.Application)
 	service.Init(logger, engine)
-	core.Init(cfg)
-	boot.RunHttpServer(engine, &cfg.Application)
+	acore.Init(cfg)
+	runHttpServer(engine, &cfg.Application)
+}
+
+//=============================================================================
+
+func runHttpServer(router *gin.Engine, app *core.Application) {
+	slog.Info("Starting HTTPS server...")
+	rootCAs, err := x509.SystemCertPool()
+	core.ExitIfError(err)
+
+	if rootCAs == nil {
+		rootCAs = x509.NewCertPool()
+	}
+
+	caCert, err := os.ReadFile("config/agent.crt")
+	core.ExitIfError(err)
+
+	if ok := rootCAs.AppendCertsFromPEM(caCert); !ok {
+		core.ExitWithMessage("Failed to append CA cert to local certificate pool")
+	}
+
+	server := &http.Server{
+		Addr     : app.BindAddress,
+		TLSConfig: &tls.Config{
+			ClientAuth: tls.RequireAndVerifyClientCert,
+			ClientCAs : rootCAs,
+		},
+		Handler  : router,
+	}
+
+	slog.Info("Running")
+	err = server.ListenAndServeTLS("config/agent.crt", "config/agent.key")
+	core.ExitIfError(err)
 }
 
 //=============================================================================
