@@ -5,6 +5,8 @@
 This is an agent that collects metrics from external trading systems and exposes them through a REST API. It is used by 
 the Algotiqa platform when the trading system's runtime is external to the platform itself (like TradeStation, MultiCharts, MetaTrader, etc...).
 
+**Note:** the main documentation of the platform is located [HERE](https://github.com/algotiqa/docs).
+
 ## File format
 
 The agent scans a folder and read all files with a given extension. These files must have a CSV (Comma Separated Value) like format and each line may be an an INFO, START, BAR or TRADE line. The separator is a "|" character (the pipe).
