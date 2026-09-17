@@ -1,11 +1,13 @@
 # Algotiqa Agent
 
+> [!TIP]
+> The main documentation of the platform is located [HERE](https://github.com/algotiqa/docs).
+
 ## Introduction
 
 This is an agent that collects metrics from external trading systems and exposes them through a REST API. It is used by 
 the Algotiqa platform when the trading system's runtime is external to the platform itself (like TradeStation, MultiCharts, MetaTrader, etc...).
 
-**Note:** the main documentation of the platform is located [HERE](https://github.com/algotiqa/docs).
 
 ## File format
 
