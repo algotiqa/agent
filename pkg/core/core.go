@@ -43,6 +43,7 @@ const INFO  = "INFO"
 const START = "START"
 const BAR   = "BAR"
 const TRADE = "TRADE"
+const DAILY = "DAILY"
 
 //=============================================================================
 
@@ -135,8 +136,8 @@ func handleFile(dir string, fileName string) (*TradingSystem, error) {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	ts := NewTradingSystem()
-	tl := NewTradeList()
+	ts      := NewTradingSystem()
+	tl      := NewTradeList()
 	tl.FileName = fileName
 
 	for scanner.Scan() {
@@ -159,20 +160,24 @@ func handleLine(ts *TradingSystem, tl *TradeList, line string) error {
 	tokens := strings.Split(line, "|")
 
 	switch tokens[0] {
-	case INFO:
-		handleInfo(ts, tokens)
-	case START:
-		tl.OpenTrade = nil
-	case BAR:
-		if err := handleBar(tl, tokens); err != nil {
+		case INFO:
+			handleInfo(ts, tokens)
+		case START:
+			tl.OpenTrade = nil
+		case BAR:
+			if err := handleBar(tl, tokens); err != nil {
+				return err
+			}
+		case TRADE:
+			if err := handleTrade(ts, tl, tokens); err != nil {
+				return err
+			}
+		case DAILY:
+			if err := handleDaily(tl, tokens); err != nil {
 			return err
 		}
-	case TRADE:
-		if err := handleTrade(ts, tl, tokens); err != nil {
-			return err
-		}
-	default:
-		return errors.New("Unknown token: " + tokens[0])
+		default:
+			return errors.New("Unknown token: " + tokens[0])
 	}
 
 	return nil
@@ -222,6 +227,34 @@ func handleBar(tl *TradeList, tokens []string) error {
 	//-----------------------------------------
 
 	tl.OpenTrade = append(tl.OpenTrade, eb)
+	return nil
+}
+
+//=============================================================================
+
+func handleDaily(tl *TradeList, tokens []string) error {
+	var err error
+
+	ddate       := tokens[1]
+	grossReturn := tokens[2]
+
+	dr := NewDailyReturn()
+
+	//-----------------------------------------
+
+	dr.Date, err = convertDate(ddate)
+	if err != nil {
+		return err
+	}
+
+	dr.GrossReturn, err = strconv.ParseFloat(grossReturn, 64)
+	if err != nil {
+		return errors.New("Cannot parse gross return: " + grossReturn)
+	}
+
+	//-----------------------------------------
+
+	tl.DailyReturns = append(tl.DailyReturns, dr)
 	return nil
 }
 

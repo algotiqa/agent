@@ -5,13 +5,12 @@
 
 ## Introduction
 
-This is an agent that collects metrics from external trading systems and exposes them through a REST API. It is used by 
-the Algotiqa platform when the trading system's runtime is external to the platform itself (like TradeStation, MultiCharts, MetaTrader, etc...).
+This is an agent that collects metrics from external trading systems and exposes them through a REST API. It is used by the Algotiqa platform when the trading system's runtime is external to the platform itself (like TradeStation, MultiCharts, MetaTrader, NinjaTrader, etc...).
 
 
 ## File format
 
-The agent scans a folder and read all files with a given extension. These files must have a CSV (Comma Separated Value) like format and each line may be an an INFO, START, BAR or TRADE line. The separator is a "|" character (the pipe).
+The agent scans a folder and read all files with a given extension. These files must have a CSV (Comma Separated Value) like format and each line may be an INFO, START, BAR, TRADE or DAILY line. The separator is a "|" character (the pipe).
 
 There is only 1 INFO line per file and it is the first line. Its purpose is to provide general information and has the following structure:
 - **INFO** : fixed text to identify the INFO line
@@ -27,10 +26,10 @@ The BAR line tracks the strategy returns on each bar of the trade. The structure
 - **BAR**       : fixed text to identify the BAR line
 - **date**      : date of the bar
 - **time**      : time of the bar
-- **return**    : return of the trade at this bar (either a profit or loss) respect to when the trade was opened
+- **return**    : gross return of the trade at this bar (either a profit or loss) respect to when the trade was opened
 - **contracts** : number of contracts held at this bar
 
-The TRADE lines have the following structure:
+The TRADE line indicates a new trade and has the following structure:
 - **entryDate**  : Date when the trade started (i.e. entered the market)
 - **entryTime**  : Time when the trade started
 - **entryPrice** : Market price when entering the market
@@ -39,9 +38,14 @@ The TRADE lines have the following structure:
 - **exitTime**   : Time when the trade ended
 - **exitPrice**  : Market price when exiting the market
 - **exitLabel**  : Generic text used with the sell/buyToCover commands
-- **return**     : Trade's return: profit (if positive) or loss (if negative)
-- **contracts**  : Number of contracts bought or sold
+- **return**     : Trade's gross return: profit (if positive) or loss (if negative)
+- **contracts**  : Max number of contracts bought or sold during the trade's life
 - **operation**  : Type of operation (buy=1, sell=-1)
+
+The DAILY line is used to keep track of daily returns, which are used to calculate the correlation between trading systems:
+- **DAILY**     : fixed text to identify the DAILY line
+- **date**      : date related to the end of the session
+- **return**    : gross return of the trade at the end of the session (either a profit or loss)
 
 All values (entry/exit date/time/price, profit) refers to the platform that is running the trading system, not the broker. The format of the fields is:
 
@@ -60,7 +64,7 @@ This function, called **writeTrades** exports trades from a strategy (signal) ru
 ```
 Inputs: tag(string);
 
-var: fileName(""), tt(0), pos(0), suffix(""), startEquity(0), barEquity(0), mp(0);
+var: fileName(""), tt(0), pos(0), suffix(""), startEquity(0), barEquity(0), prevEquity(0), dailyReturn(0), mp(0);
 
 once begin
 	if StrLen(tag) <> 0 then begin
@@ -102,6 +106,12 @@ if StrLen(tag) <> 0 then begin
 	if mp<>0 then begin
 		barEquity = i_OpenEquity - startEquity;
 		Print(File(fileName ),"BAR", "|", Date2String(date), "|", time:0:0, "|", barEquity:0:2, "|", CurrentContracts:0:0);
+	end;
+	
+	if SessionLastBar then begin
+		dailyReturn = i_OpenEquity - prevEquity;
+		prevEquity  = i_OpenEquity;
+		Print(File(fileName ),"DAILY", "|", Date2String(date), "|", dailyReturn:0:2);
 	end;
 end;	
 

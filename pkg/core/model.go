@@ -52,9 +52,10 @@ func NewTradingSystem() *TradingSystem {
 //=============================================================================
 
 type TradeList struct {
-	FileName   string       `json:"fileName"`
-	Trades     []*Trade     `json:"trades"`
-	OpenTrade  []*EquityBar `json:"openTrade"`
+	FileName     string         `json:"fileName"`
+	Trades       []*Trade       `json:"trades"`
+	OpenTrade    []*EquityBar   `json:"openTrade"`
+	DailyReturns []*DailyReturn `json:"dailyReturns"`
 }
 
 //=============================================================================
@@ -105,6 +106,19 @@ type EquityBar struct {
 
 func NewEquityBar() *EquityBar {
 	return &EquityBar{}
+}
+
+//=============================================================================
+
+type DailyReturn struct {
+	Date        int     `json:"date"`
+	GrossReturn float64 `json:"grossReturn"`
+}
+
+//=============================================================================
+
+func NewDailyReturn() *DailyReturn {
+	return &DailyReturn{}
 }
 
 //=============================================================================
