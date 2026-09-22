@@ -6,10 +6,9 @@ on:
 
 permissions:
   contents: write  # Required to create GitHub Releases and upload binaries
-  packages: write  # Required to push container images to GHCR
 
 jobs:
-  release-binaries-and-container:
+  release-binaries:
     runs-on: ubuntu-latest
 
     steps:
