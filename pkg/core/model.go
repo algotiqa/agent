@@ -112,6 +112,7 @@ func NewEquityBar() *EquityBar {
 
 type DailyReturn struct {
 	Date        int     `json:"date"`
+	Time        int64   `json:"time"`
 	GrossReturn float64 `json:"grossReturn"`
 }
 

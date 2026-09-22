@@ -45,9 +45,10 @@ The TRADE line indicates a new trade and has the following structure:
 The DAILY line is used to keep track of daily returns, which are used to calculate the correlation between trading systems:
 - **DAILY**     : fixed text to identify the DAILY line
 - **date**      : date related to the end of the session
+- **time**      : time related to the end of the session
 - **return**    : gross return of the trade at the end of the session (either a profit or loss)
 
-All values (entry/exit date/time/price, profit) refers to the platform that is running the trading system, not the broker. The format of the fields is:
+All values (entry/exit date/time/price, profit) refers to the platform that is running the trading system. The timezone of the date+time is the one of the exchange where the product is traded. The format of the fields is:
 
 - **date** : format is *DD/MM/YYYY*
 - **time** : This is an integer and a value of *900* represents the time at *09:00*
@@ -111,7 +112,7 @@ if StrLen(tag) <> 0 then begin
 	if SessionLastBar then begin
 		dailyReturn = i_OpenEquity - prevEquity;
 		prevEquity  = i_OpenEquity;
-		Print(File(fileName ),"DAILY", "|", Date2String(date), "|", dailyReturn:0:2);
+		Print(File(fileName ),"DAILY", "|", Date2String(date), "|", time:0:0, "|", dailyReturn:0:2);
 	end;
 end;	
 

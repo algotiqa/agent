@@ -236,7 +236,8 @@ func handleDaily(tl *TradeList, tokens []string) error {
 	var err error
 
 	ddate       := tokens[1]
-	grossReturn := tokens[2]
+	dtime       := tokens[2]
+	grossReturn := tokens[3]
 
 	dr := NewDailyReturn()
 
@@ -245,6 +246,11 @@ func handleDaily(tl *TradeList, tokens []string) error {
 	dr.Date, err = convertDate(ddate)
 	if err != nil {
 		return err
+	}
+
+	dr.Time, err = strconv.ParseInt(dtime, 10, 32)
+	if err != nil {
+		return errors.New("Cannot parse time: " + dtime)
 	}
 
 	dr.GrossReturn, err = strconv.ParseFloat(grossReturn, 64)
