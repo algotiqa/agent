@@ -53,7 +53,7 @@ All values (entry/exit date/time/price, profit) refers to the platform that is r
 - **date** : format is *DD/MM/YYYY*
 - **time** : This is an integer and a value of *900* represents the time at *09:00*
 
-In the [samples](samples) folder there are a few examples of files that conform to this specification.
+In the [samples](samples) folder there are a few examples of files that conform to this specification. These files are from real strategies.
 
 
 ## Integration with trading platforms
